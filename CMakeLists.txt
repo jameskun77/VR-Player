@@ -12,7 +12,11 @@ SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(SOURCE_DIR src)
 
 set(SOURCE_LIST ${SOURCE_DIR}/glad.cpp
-	${SOURCE_DIR}/main.cpp ${SOURCE_DIR}/generateSphere.cpp)
+				${SOURCE_DIR}/main.cpp 
+				${SOURCE_DIR}/generateSphere.cpp
+				${CMAKE_SOURCE_DIR}/includes/generateSphere.h
+				${SOURCE_DIR}/sphereProperty.cpp
+				${CMAKE_SOURCE_DIR}/includes/sphereProperty.h)
 	
 
 message(STATUS "Current directory: " ${CMAKE_SOURCE_DIR})

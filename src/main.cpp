@@ -8,6 +8,7 @@
 #include "Filesystem.h"
 #include "Camera.h"
 #include "generateSphere.h"
+#include "sphereProperty.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -19,6 +20,7 @@ void processInput(GLFWwindow *window);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 void initData();
+void initTexture();
 
 const int windowWidth = 800;
 const int windowHeight = 600;
@@ -36,11 +38,17 @@ bool  firstMouse = true;
 float deltatime = 0.0f;
 float lastframe = 0.0f;
 
+//鼠标移动的灵敏度
+float sensitivity = 4.0f;
+
 //sphere
 #define OSSphereSliceNum  300
 #define OSSphereRadius    1.0   // 球体模型半径
 GLint	_numIndices;             //索引个数
+int _numPoints;
 GLuint	program;
+
+bool isLineMode = false;
 
 int main(int argc, char* argv[])
 {
@@ -77,7 +85,12 @@ int main(int argc, char* argv[])
 	glEnable(GL_DEPTH_TEST);
 
 	Shader shader(FileSystem::getPath("resources/shader/vertexShader").c_str(),FileSystem::getPath("resources/shader/fragmentShader").c_str());
-	initData();
+
+	//initData();
+	//SphereProperty sphereProperty(&VAO, &_numPoints, OSSphereRadius);
+	SphereProperty sphereProperty(&VAO, &_numIndices, OSSphereRadius, 100, 200);
+	initTexture();
+
 	shader.use(); //use之后才能 set
 	
 	shader.setInt("ourTexture", 0);
@@ -105,14 +118,14 @@ int main(int argc, char* argv[])
 		projections = glm::perspective(glm::radians(camera.mZoom), (float)windowWidth / (float)windowHeight, 0.1f, 100.0f);
 		shader.setMatrix4("project", projections);
 
-		glm::mat4 mods;
-		mods = glm::rotate(mods, 10.0f, glm::vec3(0.0, 0.0, 1.0));
+		glm::mat4 mods(1.0f);
 		shader.setMatrix4("model", mods);
 
 		glm::mat4 views = camera.GetViewMatrix();
 		shader.setMatrix4("view", views);
 
 		glDrawElements(GL_TRIANGLES, _numIndices, GL_UNSIGNED_SHORT, 0);
+		//glDrawArrays(GL_TRIANGLES, 0, _numPoints);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -178,6 +191,7 @@ void initData()
 
 	//load
 	int imgWidth, imgHeight, imgChannel;
+	stbi_set_flip_vertically_on_load(true);
 	unsigned char* pData = stbi_load(FileSystem::getPath("resources/city.jpg").c_str(), &imgWidth, &imgHeight, &imgChannel, 0);
 	if (pData)
 	{
@@ -199,6 +213,36 @@ void initData()
 	glBindVertexArray(0);
 }
 
+void initTexture()
+{
+	//texture1
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	//wrap
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	//filter
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	//load
+	int imgWidth, imgHeight, imgChannel;
+	stbi_set_flip_vertically_on_load(true);
+	unsigned char* pData = stbi_load(FileSystem::getPath("resources/city.jpg").c_str(), &imgWidth, &imgHeight, &imgChannel, 0);
+	if (pData)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imgWidth, imgHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, pData);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else
+	{
+		std::cout << "load image1 failed." << std::endl;
+	}
+	stbi_image_free(pData);
+}
+
 void processInput(GLFWwindow *window)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -214,6 +258,19 @@ void processInput(GLFWwindow *window)
 		camera.ProcessKeyboard(LEFT, deltatime);
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		camera.ProcessKeyboard(RIGHT, deltatime);
+
+	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
+	{
+		isLineMode = !isLineMode;
+		if (isLineMode)
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		}
+		else
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		}
+	}
 }
 
 void mouse_callback(GLFWwindow *window, double xpos, double ypos)
@@ -227,8 +284,8 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos)
 			firstMouse = false;
 		}
 
-		float xoffset = xpos - lastX;
-		float yoffset = lastY - ypos;
+		float xoffset = (xpos - lastX) * sensitivity;
+		float yoffset = (lastY - ypos) * sensitivity;
 
 		lastX = xpos;
 		lastY = ypos;

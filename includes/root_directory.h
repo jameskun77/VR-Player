@@ -1,1 +1,1 @@
-const char* source_root = "E:/OpenGL/360view";
+const char* source_root = "D:/workSpace/githubProject/VR-Player";
