@@ -94,6 +94,10 @@ int main(int argc, char* argv[])
 	shader.use(); //use之后才能 set
 	
 	shader.setInt("ourTexture", 0);
+	int modelHandle =  glGetUniformLocation(shader.program, "model");
+	int viewHandle = glGetUniformLocation(shader.program, "view");
+	int projectionHandle = glGetUniformLocation(shader.program, "project");
+
 
 	while (!glfwWindowShouldClose(window))
 	{	
@@ -116,13 +120,16 @@ int main(int argc, char* argv[])
 		//Model View Projection
 		glm::mat4 projections;
 		projections = glm::perspective(glm::radians(camera.mZoom), (float)windowWidth / (float)windowHeight, 0.1f, 100.0f);
-		shader.setMatrix4("project", projections);
+		//shader.setMatrix4("project", projections); //每帧调用glGetUniformLocation会导致cpu急剧上升，在初始化的时候获取uniform的handle，可以减少CPU消耗
+		glUniformMatrix4fv(projectionHandle, 1, GL_FALSE, &projections[0][0]);
 
 		glm::mat4 mods(1.0f);
-		shader.setMatrix4("model", mods);
+		//shader.setMatrix4("model", mods);
+		glUniformMatrix4fv(modelHandle, 1, GL_FALSE, &mods[0][0]);
 
 		glm::mat4 views = camera.GetViewMatrix();
-		shader.setMatrix4("view", views);
+		//shader.setMatrix4("view", views);
+		glUniformMatrix4fv(viewHandle, 1, GL_FALSE, &views[0][0]);
 
 		glDrawElements(GL_TRIANGLES, _numIndices, GL_UNSIGNED_SHORT, 0);
 		//glDrawArrays(GL_TRIANGLES, 0, _numPoints);
